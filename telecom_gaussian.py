@@ -34,6 +34,8 @@ class Beam:
         self.z, self.z_inc = np.linspace(0, self.z_max, self.sim_res, 
                                          retstep=True)
         
+        self.focals = [(np.min(self.z), self.w_init)]
+        
     
     def print_details(self):
         print("Beam parameters")
@@ -53,7 +55,25 @@ class Beam:
             print("\t\tFocal length:", lens['focal_length'] * 1e3, "mm")
             print("\t\tz position:", lens['z_position'], "m\n")
         
+    
+    def print_focals(self):
+        i = 0
+        for w_loc, w_val in self.focals:
+            print(i, "At z=", w_loc, "m, w=", w_val * 1e6, "um")
+            i += 1
+            
+        print("")
         
+        w_prev = self.focals[0][1]
+        for idx in range(1, len(self.focals)):
+            w_cur = self.focals[idx][1]
+            
+            print("Ratio between", idx, "and", idx - 1, "=", 
+                  w_cur / w_prev)
+            
+            w_prev = w_cur
+            
+    
     def load_parameters(self, filename):
         """
         Load beam initial conditions from json file, 1 deep, and assign
@@ -90,7 +110,7 @@ class Beam:
                 lens.get('z_position', 0) < np.min(self.z)):
                 print("Lens", alias, "is outside of simulation region!")
                
-                
+            
     """
     def q_fast(self):
         q = np.zeros(len(self.z), dtype=np.complex_)
@@ -124,10 +144,11 @@ class Beam:
                     
                     z_fs = 0
                     z_last = z_pos
+                    
+                    done_lenses.append(k)
         
         pass
-    """
-      
+    """  
     
     def q_evaluate(self):
         """
@@ -206,20 +227,19 @@ class Beam:
         w_p = np.gradient(w)
         
         print("Finding focal points...", end='')
-        focal_points = []
-        z_prev = self.z[0]
+        #focal_points = []
         for idx in range(1, len(w_p)):
             z_pos = self.z[idx]
             if w_p[idx] > 0 and w_p[idx - 1] < 0:
                 w_loc = z_pos
                 w_val = w[idx]
                 
-                focal_points.append((w_loc, w_val))
+                #focal_points.append((w_loc, w_val))
+                self.focals.append((w_loc, w_val))
            
         print("Done")
         
-        for w_loc, w_val in focal_points:
-            print("At z=", w_loc, "m, w=", w_val, "um")        
+        self.print_focals()    
     
     
     def plot_both_norm(self):
