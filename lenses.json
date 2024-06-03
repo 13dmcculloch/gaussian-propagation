@@ -1,11 +1,13 @@
 {
 	"A": {
 		"z_position": 25e-3,
-		"focal_length": 25e-3
+		"focal_length": 25e-3,
+		"radius": 12.7e-3
 	},
 	
 	"B": {
 		"z_position": 5e-1,
-		"focal_length": 100e-3
+		"focal_length": 100e-3,
+		"radius": 12.7e-3
 	}
 }

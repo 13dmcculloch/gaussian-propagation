@@ -28,6 +28,8 @@ class Beam:
             
         self.q_init = self.q_scalar()
         self.q = False  # haven't evaluated q yet
+        self.w = False
+        self.R = False
         
         self.z_R = math.pi * self.w_init**2 / self.wavelength
         
@@ -181,8 +183,9 @@ class Beam:
                     at_lens = True
                     
                     f = self.lenses[k]['focal_length']
+                    radius = self.lenses[k]['radius']
                     
-                    lens = Lens(f, z_pos_lens)
+                    lens = Lens(f, z_pos_lens, radius)
                     q_lens = self.Mq(q_p, lens.matrix)
                     
                     done_lenses.append(k)
@@ -211,30 +214,38 @@ class Beam:
                   "m with f =", f * 1e3,
                   "mm")
         
-        print("")
-        
+        self.done_lens_info = done_lens_info
         self.q = 1/np.array(q)
+        
+        print("Calculating beam waist...", end='')
+        self.w = np.sqrt((self.wavelength / math.pi) * -1/np.imag(self.q))
+        print("Done")
+        
+        print("Calculating bend radius...", end='')
+        self.R = np.real(self.q)
+        print("Done\n")
         
         return self.q
             
     
+    def print_q_missing(self):
+        print("[ERROR]: Need to evaluate q first!")
+        
+    
     def focal_points(self):
-        if not self.q.any():
-            print("Need to evaluate q first!\nobj.q_evaluate()")
+        if type(self.q) == bool or type(self.w) == bool:
+            self.print_q_missing()
             return
         
-        w = np.sqrt((self.wavelength / math.pi) * -1/np.imag(self.q))
-        w_p = np.gradient(w)
+        w_p = np.gradient(self.w)
         
         print("Finding focal points...", end='')
-        #focal_points = []
         for idx in range(1, len(w_p)):
             z_pos = self.z[idx]
             if w_p[idx] > 0 and w_p[idx - 1] < 0:
                 w_loc = z_pos
-                w_val = w[idx]
+                w_val = self.w[idx]
                 
-                #focal_points.append((w_loc, w_val))
                 self.focals.append((w_loc, w_val))
            
         print("Done")
@@ -242,17 +253,44 @@ class Beam:
         self.print_focals()    
     
     
+    def waist_radius_check(self):
+        if type(self.w) == bool:
+            self.print_q_missing()
+            return 
+        
+        for alias, z_pos, f in self.done_lens_info:
+            radius = self.lenses[alias]['radius']
+            
+            idx = int(z_pos / self.z_inc)
+            waist = self.w[idx]
+            
+            if waist > radius:
+                print("Beam waist is outside OD of lens", alias)
+    
+    
+    def plot_lens_radius(self):
+        c = 0.0
+        for k in self.lenses.keys():
+            lens = self.lenses[k]
+            self.ax.vlines(x=lens['z_position'], 
+                            ymin=0, 
+                            ymax=lens['radius'] * 1e3,
+                            color=str(c),
+                            label='lens ' + k)
+            
+            c += 0.2
+            
+        self.ax.set_ylim([0, lens['radius'] * 1e3 + 3])
+    
+    
     def plot_both_norm(self):
         self.fig, self.ax = plot_setup("Radius of curvature and beam waist",
                                        "z/z_R (m)",
                                        "Norm (m)")
         
-        R = 1/np.real(self.q)
-        self.ax.plot(self.z/self.z_R, R/self.z_R, label='R(z)/z_R')
+        self.ax.plot(self.z/self.z_R, self.R/self.z_R, label='R(z)/z_R')
         
-        
-        w = np.sqrt((self.wavelength / math.pi) * -1/np.imag(self.q))
-        self.ax.plot(self.z/self.z_R, w/self.w_init, label='w(z)/w(0)')
+        self.ax.plot(self.z/self.z_R, self.w/self.w_init, label='w(z)/w(0)')
         
         self.ax.set_ylim([0, 10])
         
@@ -263,9 +301,8 @@ class Beam:
         self.fig, self.ax = plot_setup("Gaussian Beam 2",
                                        "z (m)",
                                        "Radius of curvature (m)")
-        R = np.real(self.q)
         
-        self.ax.plot(self.z, R, label='R(z)')
+        self.ax.plot(self.z, self.R, label='R(z)')
         
     
     def plot_q(self):
@@ -279,13 +316,13 @@ class Beam:
         
     
     def plot_w(self):
-        w = np.sqrt((self.wavelength / math.pi) * -1/np.imag(self.q))
-        
         self.fig, self.ax = plot_setup("Gaussian Beam 2",
                                        "z (m)",
                                        "Beam waist (mm)")
         
-        self.ax.plot(self.z, w * 1e3, label='w(z)')
+        self.plot_lens_radius()
+        
+        self.ax.plot(self.z, self.w * 1e3, label='w(z)')
         
         self.ax.legend()
         
@@ -341,8 +378,16 @@ class Lens(opticalComponent):
     """
     Constructor
     """
-    def __init__(self, f, z_pos):
+    def __init__(self, f, z_pos, radius):
         super().__init__(1, 0, -1/f, 1, z_pos)
+        self.radius = radius
+        
+    
+    def check_radius(self, radius):
+        """
+        Returns false if argument is less than lens radius
+        """
+        return radius < self.radius
     
     
 class Space(opticalComponent):
@@ -397,5 +442,5 @@ beam.print_details()
 
 beam.q_evaluate()
 
-beam.plot_w()
 beam.focal_points()
+beam.waist_radius_check()
