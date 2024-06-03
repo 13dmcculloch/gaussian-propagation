@@ -1,0 +1,8 @@
+{
+	"wavelength": 800e-9,
+	"initial_waist": 2.36e-6,
+	"initial_curvature": 10e10,
+	
+	"simulation_length": 0.7,
+	"simulation_resolution": 1e6
+}
