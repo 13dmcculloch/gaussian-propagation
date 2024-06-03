@@ -26,6 +26,11 @@ class Beam:
             self.z_max = 1
             self.sim_res = int(1e5)
             
+        self.sim_resolution = self.z_max / self.sim_res
+        if self.sim_resolution > 1e-6:
+            print("[WARNING]: Simulation resolution exceeds 1 um"
+                  " and will lead to significant linear diffraction effects.")
+            
         self.q_init = self.q_scalar()
         self.q = False  # haven't evaluated q yet
         self.w = False
@@ -48,7 +53,7 @@ class Beam:
         print("Simulation parameters")
         print("\tLength:", self.z_max, "m")
         print("\tSteps:", self.sim_res / 1e6, "M")
-        print("\tResolution:", self.z_max * 1e6 / self.sim_res, "um\n")
+        print("\tResolution:", self.sim_resolution * 1e6, "um\n")
         
         print("Lenses")
         for alias in self.lenses.keys():
