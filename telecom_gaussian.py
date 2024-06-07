@@ -447,5 +447,8 @@ beam.print_details()
 
 beam.q_evaluate()
 
+beam.plot_w()
+beam.plot_lens_radius()
+
 beam.focal_points()
 beam.waist_radius_check()
