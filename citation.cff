@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "Gaussian beam propagation."
+authors:
+- family-names: "McCulloch"
+  given-names: "Douglas"
+  orcid: "https://orcid.org/0009-0004-0946-5506"
+title: "gaussian-propagation"
+version: 1.0.0
+date-released: 2024-06-10
+url: "https://github.com/13dmcculloch/gaussian-propagation"
